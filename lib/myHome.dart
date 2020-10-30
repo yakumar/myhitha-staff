@@ -19,9 +19,6 @@ Future<List<Order>> fetchVeggies() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   String token = prefs.getString('token');
 
-  print('get phone =>, ${prefs.getString('phone')}');
-  print('get pass =>, ${prefs.getString('password')}');
-
   final response = await http
       .get("https://arcane-springs-88980.herokuapp.com/getorders", headers: {
     'Content-Type': 'application/json',
@@ -60,6 +57,8 @@ class MyHome extends StatefulWidget {
 class _MyHomeState extends State<MyHome> {
   Future<List<Order>> _myVeggieList;
 
+  String _dropDownValue;
+
   @override
   void initState() {
     super.initState();
@@ -82,6 +81,14 @@ class _MyHomeState extends State<MyHome> {
     Get.off(Login());
   }
 
+  Future<void> _orderStatusDialog(String dropy, int orderId) async {
+    await showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return BuildDialog(orderId);
+        });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -96,10 +103,12 @@ class _MyHomeState extends State<MyHome> {
         title: Text('MyHitha Staff'),
       ),
       body: RefreshIndicator(
+        strokeWidth: 3.0,
         onRefresh: _refresh,
-        child: Container(
-          alignment: Alignment.topCenter,
-          child: SingleChildScrollView(
+        child: SingleChildScrollView(
+          physics: AlwaysScrollableScrollPhysics(),
+          child: Container(
+            alignment: Alignment.topCenter,
             child: Column(
               children: [
                 Text('Today Orders',
@@ -122,7 +131,7 @@ class _MyHomeState extends State<MyHome> {
   }
 
   _listView(BuildContext context, List<Order> data) {
-    print('from _listView, ${data}');
+    // print('from _listView, ${data}');
     return ListView.builder(
         shrinkWrap: true,
         physics: ClampingScrollPhysics(),
@@ -186,6 +195,9 @@ class _MyHomeState extends State<MyHome> {
                 title: Text('Order_id : ${order.orderId}'),
               ),
               ListTile(
+                title: Text('Status : ${order.status}'),
+              ),
+              ListTile(
                 title: Text('Payment type : ${order.paymentType}'),
               ),
               Container(
@@ -229,17 +241,155 @@ class _MyHomeState extends State<MyHome> {
                   ],
                 ),
               ),
-              Padding(
-                padding: EdgeInsets.all(4.0),
-                child: RaisedButton(
-                  onPressed: () => {
-                    Get.toNamed('/editFinalOrder', arguments: order.orderId)
-                  },
-                  child: Text('Edit Order'),
-                ),
-              )
+              Row(
+                children: [
+                  Padding(
+                    padding: EdgeInsets.all(4.0),
+                    child: RaisedButton(
+                      onPressed: () => {
+                        Get.toNamed('/editFinalOrder', arguments: order.orderId)
+                      },
+                      child: Text('Edit Order'),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.all(4.0),
+                    child: RaisedButton(
+                      onPressed: () =>
+                          _orderStatusDialog(_dropDownValue, order.orderId),
+                      child: Text('Edit Order status'),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ));
+  }
+}
+
+class BuildDialog extends StatefulWidget {
+  int orderId;
+
+  BuildDialog(this.orderId);
+  @override
+  _BuildDialogState createState() => _BuildDialogState(orderId);
+}
+
+class _BuildDialogState extends State<BuildDialog> {
+  int orderId;
+
+  _BuildDialogState(this.orderId);
+
+  String _dropDownValue;
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10.0),
+              color: Colors.amberAccent[400],
+            ),
+            width: displayWidth(context) / 1.3,
+            height: displayHeight(context) / 3,
+            margin: EdgeInsets.symmetric(
+              horizontal: 10.0,
+            ),
+            alignment: Alignment.center,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                DropdownButton<String>(
+                  elevation: 20,
+                  iconEnabledColor: Colors.green,
+                  hint: _dropDownValue == null
+                      ? Text('Change Status')
+                      : Text(
+                          _dropDownValue,
+                          style: TextStyle(
+                              color: Colors.blue, fontWeight: FontWeight.bold),
+                        ),
+                  items:
+                      <String>['Processing', 'Completed'].map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(
+                        value,
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _dropDownValue = value;
+                    });
+                  },
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    RaisedButton(
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10.0)),
+                      onPressed: () => _editOrderStatus(orderId),
+                      child: Text('Save'),
+                    ),
+                    RaisedButton(
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10.0)),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: Text('close'),
+                    )
+                  ],
+                )
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  _editOrderStatus(int orderId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String token = prefs.getString('token');
+    final headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    // var newm = FinalOrderModel(myOrderId, myList, costOfOrder, false);
+
+    // final body = newm.toJson();
+
+    final body = jsonEncode(<String, dynamic>{
+      "order_id": "${orderId}",
+      "status": _dropDownValue.toLowerCase()
+    });
+
+    final uri =
+        Uri.https('arcane-springs-88980.herokuapp.com', '/updateOrderStatus');
+
+    // final headers = {HttpHeaders.contentTypeHeader: 'application/json'};
+    var response = await http.put(
+      uri,
+      headers: headers,
+      body: body,
+    );
+
+    if (response.statusCode == 200) {
+      // Navigator.of(context).pop();
+      Get.offAll(MyHome());
+    } else {
+      print('no order Edited');
+      return Future.error('Failed to Edit order');
+
+      // throw Exception('Failed to create order.');
+    }
   }
 }
