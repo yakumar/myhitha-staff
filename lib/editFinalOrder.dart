@@ -2,6 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import './bloc/editorder_bloc.dart';
+import './bloc/editorder_state.dart';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,6 +16,8 @@ import './model/singleOrder.dart';
 import './model/finalOrderModel.dart';
 import './model/stock.dart';
 import './myHome.dart';
+import 'bloc/editorder_bloc.dart';
+import './bloc/editorder_event.dart';
 
 //      url: "https://arcane-springs-88980.herokuapp.com/updateFinalOrder",
 
@@ -68,7 +74,11 @@ class EditFinalOrder extends StatefulWidget {
 }
 
 class _EditFinalOrderState extends State<EditFinalOrder> {
-  Future<Map<String, dynamic>> _myVeggieList;
+  // Future<Map<String, dynamic>> myVeggieList;
+
+  TextEditingController _quantityController;
+
+  int quantityMod = 0;
 
   List myList;
   int myOrderId;
@@ -77,130 +87,138 @@ class _EditFinalOrderState extends State<EditFinalOrder> {
   @override
   void initState() {
     super.initState();
+    print('GETX => ${Get.arguments}');
+    print('GETX => ${Get.arguments.runtimeType}');
 
-    _myVeggieList = fetchOrder();
-    _setProductList();
+    // _setProductList();
+
+    context.bloc<EditorderBloc>().add(LoadOrderEvent(Get.arguments));
 
     // getCurrentUser();
   }
 
-  _setProductList() async {
-    Map<String, dynamic> getMap = await _myVeggieList.then((value) => value);
-
+  _changeText(String quantityStr) {
     setState(() {
-      myList = getMap['list'];
+      quantityMod = int.parse(quantityStr);
     });
   }
 
-  Future<void> _refresh() {
-    print('refreshing');
-    setState(() {
-      _myVeggieList = fetchOrder();
-    });
-    return _myVeggieList;
-  }
+  // _setProductList() async {
+  //   print('myVeggieList, ${myVeggieList}');
+  //   Map<String, dynamic> getMap = await myVeggieList.then((value) => value);
 
-  _editFutureList(BuildContext context, String name) {
-    // Future<List> newL = await _myVeggieList
-    // print('_myVeggiesListyy, $_myVeggieList');
+  //   setState(() {
+  //     myList = getMap['list'];
+  //   });
+  // }
 
-    Future<Map<String, dynamic>> newList() async {
-      Map<String, dynamic> getMap = await _myVeggieList.then((value) => value);
+  // _editFutureList(BuildContext context, String name) {
+  //   // Future<List> newL = await myVeggieList
+  //   // print('_myVeggiesListyy, $myVeggieList');
 
-      List<SingleOrderModel> fetchedList =
-          getMap['list'].where((product) => product.name != name).toList();
+  //   Future<Map<String, dynamic>> newList() async {
+  //     Map<String, dynamic> getMap = await myVeggieList.then((value) => value);
 
-      //
+  //     print('getMap => $getMap');
 
-      print('fetched List **** ${fetchedList}');
+  // List<SingleOrderModel> fetchedList =
+  //     getMap['list'].where((product) => product.name != name).toList();
 
-      //  fetchedList.map((SingleOrderModel e, index i)=>)
+  // //
 
-      // _myVeggieList['list'].then((proList) => print(proList));
+  //     print('fetched List **** ${fetchedList}');
 
-      int orderyId = getMap['orderId'];
+  //     //  fetchedList.map((SingleOrderModel e, index i)=>)
 
-      List<dynamic> myArr = fetchedList.map((mapy) => mapy.cPrice).toList();
+  //     // myVeggieList['list'].then((proList) => print(proList));
 
-      int orderCosty =
-          myArr.fold(0, (previousValue, element) => previousValue + element);
+  //     int orderyId = getMap['orderId'];
 
-      // Map<String, dynamic> newFetched =
-      //     Map.from(fetchedList.map((e) => e.toJson()).toList());
+  // List<dynamic> myArr = fetchedList.map((mapy) => mapy.calcPrice).toList();
 
-      // print('Converting Json to listy1: ${newFet}');
-      // print(jsonEncode(fetchedList.map((SingleOrderModel e) => jsonEncode(e))));
+  // int orderCosty =
+  //     myArr.fold(0, (previousValue, element) => previousValue + element);
 
-      Map<String, dynamic> newMapy = {
-        "list": fetchedList,
-        "orderCost": orderCosty,
-        "orderId": orderyId
-      };
+  //     // Map<String, dynamic> newFetched =
+  //     //     Map.from(fetchedList.map((e) => e.toJson()).toList());
 
-      setState(() {
-        myList = fetchedList;
-        costOfOrder = orderCosty;
-        myOrderId = orderyId;
-      });
+  //     // print('Converting Json to listy1: ${newFet}');
+  //     // print(jsonEncode(fetchedList.map((SingleOrderModel e) => jsonEncode(e))));
 
-      // print('MyListy here => , ${myList}');
+  //     Map<String, dynamic> newMapy = {
+  //       "list": fetchedList,
+  //       "orderCost": orderCosty,
+  //       "orderId": orderyId
+  //     };
 
-      return newMapy;
-    }
+  //     setState(() {
+  //       myList = fetchedList;
+  //       costOfOrder = orderCosty;
+  //       myOrderId = orderyId;
+  //     });
 
-    // newList();
+  //     // print('MyListy here => , ${myList}');
 
-    setState(() {
-      _myVeggieList = newList();
-    });
-    // _myVeggieList =
-    //     data.where((product) => product.name != data[index].name).toList();
-  }
+  //     return newMapy;
+  //   }
 
-  Future<void> _saveEdited() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String token = prefs.getString('token');
-    final headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
+  //   // newList();
 
-    // var newm = FinalOrderModel(myOrderId, myList, costOfOrder, false);
+  //   setState(() {
+  //     myVeggieList = newList();
+  //   });
+  //   // myVeggieList =
+  //   //     data.where((product) => product.name != data[index].name).toList();
+  // }
 
-    // final body = newm.toJson();
+  // Future<void> _saveEdited() async {
+  //   SharedPreferences prefs = await SharedPreferences.getInstance();
+  //   String token = prefs.getString('token');
+  //   final headers = {
+  //     'Content-Type': 'application/json',
+  //     'Accept': 'application/json',
+  //     'Authorization': 'Bearer $token',
+  //   };
 
-    print('encode json **** ${myList}');
-    final body = jsonEncode(<String, dynamic>{
-      "order_id": "${myOrderId}",
-      "products": encodeToJson(myList),
-      "cost_of_order": "${costOfOrder}",
-      "is_admin": false
-    });
+  //   // var newm = FinalOrderModel(myOrderId, myList, costOfOrder, false);
 
-    final uri =
-        Uri.https('arcane-springs-88980.herokuapp.com', '/updateFinalOrder');
+  //   // final body = newm.toJson();
 
-    print('URI ${uri}');
+  //   print('encode json **** ${myList}');
+  //   final body = jsonEncode(<String, dynamic>{
+  //     "order_id": "${myOrderId}",
+  //     "products": encodeToJson(myList),
+  //     "cost_of_order": "${costOfOrder}",
+  //     "is_admin": false
+  //   });
 
-    // final headers = {HttpHeaders.contentTypeHeader: 'application/json'};
-    var response = await http.put(
-      uri,
-      headers: headers,
-      body: body,
-    );
-    print("REsp=> ${response.statusCode}");
+  //   final uri =
+  //       Uri.https('arcane-springs-88980.herokuapp.com', '/updateFinalOrder');
 
-    if (response.statusCode == 200) {
-      print('Success');
-      Get.offAll(MyHome());
-    } else {
-      print('no order Edited');
-      return Future.error('Failed to Edit order');
+  //   print('URI ${uri}');
 
-      // throw Exception('Failed to create order.');
-    }
-  }
+  //   // final headers = {HttpHeaders.contentTypeHeader: 'application/json'};
+  //   var response = await http.put(
+  //     uri,
+  //     headers: headers,
+  //     body: body,
+  //   );
+  //   print("REsp=> ${response.statusCode}");
+
+  //   if (response.statusCode == 200) {
+  //     print('Success');
+  //     Get.offAll(MyHome());
+  //   } else {
+  //     print('no order Edited');
+  //     return Future.error('Failed to Edit order');
+
+  //     // throw Exception('Failed to create order.');
+  //   }
+  // }
+
+  // _refresh() {
+  //   context.bloc<EditorderBloc>().add(LoadOrderEvent(params));
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -210,74 +228,62 @@ class _EditFinalOrderState extends State<EditFinalOrder> {
         appBar: AppBar(
           title: Text('Today Stock to be purchased'),
         ),
-        body: RefreshIndicator(
-          color: Colors.redAccent,
-          onRefresh: _refresh,
-          child: Container(
-            margin: EdgeInsets.all(10.0),
-            padding: EdgeInsets.all(10.0),
-            alignment: Alignment.topCenter,
-            child: SingleChildScrollView(
-              physics: AlwaysScrollableScrollPhysics(),
-              child: Column(
-                children: [
-                  Text('Today Stocking',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 25.0)),
-                  Divider(),
-                  FutureBuilder(
-                    future: _myVeggieList,
-                    builder: (context,
-                        AsyncSnapshot<Map<String, dynamic>> snapshot) {
-                      snapshot.data != null
-                          ? print('snapshot data:, ${snapshot.data}')
-                          : print('no data');
-
-                      if (snapshot.hasData) {
-                        // List<SingleOrderModel> myList = snapshot.data;
-                        print('snapshot data:, ${snapshot.data}');
-
-                        return Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                Text(
-                                  'Name',
-                                  style: TextStyle(fontWeight: FontWeight.w600),
-                                ),
-                                Text(
-                                  'Ordrd',
-                                  style: TextStyle(fontWeight: FontWeight.w600),
-                                ),
-                                Text(
-                                  'type',
-                                  style: TextStyle(fontWeight: FontWeight.w600),
-                                ),
-                                Text(
-                                  'calc_pr',
-                                  style: TextStyle(fontWeight: FontWeight.w600),
-                                ),
-                                Text(
-                                  'Del',
-                                  style: TextStyle(fontWeight: FontWeight.w600),
-                                ),
-                              ],
-                            ),
-                            _listView(context, snapshot.data)
-                          ],
-                        );
-                      } else {
-                        return CircularProgressIndicator();
-                      }
-                    },
-                  ),
-                  RaisedButton(
-                    onPressed: _saveEdited,
-                    child: Text('Save Edited'),
-                  )
-                ],
-              ),
+        body: Container(
+          margin: EdgeInsets.all(10.0),
+          padding: EdgeInsets.all(10.0),
+          alignment: Alignment.topCenter,
+          child: SingleChildScrollView(
+            physics: AlwaysScrollableScrollPhysics(),
+            child: Column(
+              children: [
+                Text('Today Stocking',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 25.0)),
+                Divider(),
+                Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        Text(
+                          'Name',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        Text(
+                          'Ordrd',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        // Text(
+                        //   'type',
+                        //   style: TextStyle(fontWeight: FontWeight.w600),
+                        // ),
+                        Text(
+                          'calc_pr',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        // Text(
+                        //   'Edit',
+                        //   style: TextStyle(fontWeight: FontWeight.w600),
+                        // ),
+                        Text(
+                          'Del',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                    BlocBuilder<EditorderBloc, EditorderState>(
+                        buildWhen: (previous, current) => true,
+                        builder: (context, state) {
+                          return _listView(context, state.orderItemsList);
+                        })
+                  ],
+                ),
+                RaisedButton(
+                  onPressed: () =>
+                      context.bloc<EditorderBloc>().add(SaveOrderItemEvent()),
+                  child: Text('Save Edited'),
+                )
+              ],
             ),
           ),
         ),
@@ -285,31 +291,76 @@ class _EditFinalOrderState extends State<EditFinalOrder> {
     );
   }
 
-  _listView(BuildContext context, Map data) {
-    List<SingleOrderModel> extractedList = data['list'];
+  _listView(BuildContext context, List<SingleOrderModel> data) {
+    List<SingleOrderModel> extractedList = data;
     return ListView.builder(
       shrinkWrap: true,
       itemCount: extractedList.length,
       itemBuilder: (BuildContext context, int index) {
-        print('data, ${extractedList[index].cPrice}');
+        // print('data, ${extractedList[index].cPrice}');
         // var singleOrderModel = SingleOrderModel.fromJson(extractedList[index]);
         // print(singleOrderModel);
         return Padding(
           padding: const EdgeInsets.fromLTRB(15.0, 0, 0, 0),
           child: Table(
+            defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+            columnWidths: {
+              0: FlexColumnWidth(2.0),
+              1: FlexColumnWidth(3.3),
+              2: FlexColumnWidth(2.0),
+              3: FlexColumnWidth(2),
+            },
             children: [
               TableRow(children: [
                 Text('${extractedList[index].name}'),
-                Text('${extractedList[index].quantity}'),
-                Text('${extractedList[index].quantity_type}'),
+                // TextFormField(
+                //     initialValue: extractedList[index].priceQuantity.toString(),
+                //     controller: _quantityController,
+                //     onChanged: (text) => _changeText(text),
+                //     keyboardType: TextInputType.number),
+                // Text('${extractedList[index].quantity}'),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: extractedList[index].priceQuantity != 1
+                          ? IconButton(
+                              icon: Icon(Icons.remove),
+                              onPressed: () => {
+                                    print(extractedList[index].priceQuantity--),
+                                    context.bloc<EditorderBloc>().add(
+                                        EditItemQuantityEvent(
+                                            extractedList[index].name,
+                                            extractedList[index]
+                                                .priceQuantity--)),
+                                  })
+                          : IconButton(
+                              icon: Icon(Icons.remove), onPressed: () => null),
+                    ),
+                    Text('${extractedList[index].priceQuantity}'),
+                  ],
+                ),
+                // Text('${extractedList[index].quantity_type}'),
 
                 // Text('${extractedList.}'),
-                Text('${extractedList[index].cPrice}'),
+                Text('${extractedList[index].calcPrice}'),
+                // IconButton(
+                //   alignment: Alignment.topCenter,
+                //   color: Colors.red,
+                //   onPressed: () => context.bloc<EditorderBloc>().add(
+                //       EditItemQuantityEvent(extractedList[index].name,
+                //           extractedList[index].priceQuantity--)),
+                //   icon: Icon(Icons.edit),
+                // ),
                 IconButton(
                   alignment: Alignment.topCenter,
                   color: Colors.red,
-                  onPressed: () =>
-                      _editFutureList(context, extractedList[index].name),
+                  onPressed: () => context
+                      .bloc<EditorderBloc>()
+                      .add(RemoveItemEvent(extractedList[index].name)),
+                  // _editFutureList(context, extractedList[index].name),
+
                   icon: Icon(Icons.delete),
                 )
               ]),
@@ -320,28 +371,3 @@ class _EditFinalOrderState extends State<EditFinalOrder> {
     );
   }
 }
-
-//  final queryParameters = {'email': widget.email};
-//     final uri = Uri.https('arcane-springs-88980.herokuapp.com',
-//         '/getUserOrders', {'email': widget.email});
-
-//     // debugPrint('URI ${uri}');
-
-//     // final headers = {HttpHeaders.contentTypeHeader: 'application/json'};
-//     var resp = await http.get(uri);
-//     // debugPrint('List ${resp.body['data']}');
-
-//     if (resp.statusCode == 200) {
-//       var tempList = json.decode(resp.body);
-
-//       List data = tempList['data'];
-
-//       // debugPrint('List ${data}');
-
-//       // print(vegL);
-
-//       // return vegL.map((pro) => Veggie.fromJson(pro)).toList();
-//       return data.map((item) => Order.fromJson(item)).toList();
-//     } else {
-//       throw Exception('Failed to load list');
-//     }

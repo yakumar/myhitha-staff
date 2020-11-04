@@ -1,9 +1,10 @@
 class SingleOrderModel {
   String name;
   int price;
-  int cPrice;
+  int calcPrice;
   int weight;
   String image_url;
+  int priceQuantity;
 
   int quantity;
 
@@ -12,19 +13,21 @@ class SingleOrderModel {
   SingleOrderModel(
       {this.name,
       this.weight,
-      this.cPrice,
+      this.calcPrice,
       this.image_url,
       this.price,
       this.quantity,
+      this.priceQuantity,
       this.quantity_type});
 
   factory SingleOrderModel.fromJson(Map<String, dynamic> json) {
     return SingleOrderModel(
       name: json['name'],
       weight: json['weight'],
-      cPrice: json['cPrice'],
+      calcPrice: json['calcPrice'],
       image_url: json['image_url'],
       price: json['price'],
+      priceQuantity: json['priceQuantity'],
       quantity: json['quantity'],
       quantity_type: json['quantity_type'],
     );
@@ -32,11 +35,12 @@ class SingleOrderModel {
   Map<String, dynamic> toJson() => {
         'name': name,
         'weight': weight,
-        'cPrice': cPrice,
+        'calcPrice': calcPrice,
         'image_url': image_url,
         'price': price,
         'quantity': quantity,
         'quantity_type': quantity_type,
+        'priceQuantity': priceQuantity
       };
 }
 

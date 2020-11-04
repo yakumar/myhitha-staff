@@ -42,7 +42,6 @@ Future<List<Order>> fetchVeggies() async {
 
       return convertedDate == formatter;
     }).toList();
-
     return _datedList.map((pro) => Order.fromJson(pro)).toList();
   } else {
     throw Exception('Failed to load list');
@@ -138,7 +137,7 @@ class _MyHomeState extends State<MyHome> {
         itemCount: data.length,
         itemBuilder: (BuildContext context, int index) {
           Order order = data[index];
-          // print('order ==>');
+          print('order ==> ${order.orderDetails}');
           // print(order.customerAddress);
 
           return _fetchedOrder(context, order);
@@ -158,10 +157,6 @@ class _MyHomeState extends State<MyHome> {
           child: Column(
             children: [
               ListTile(
-                title: Text(
-                  'Customer Name : ${order.customerName}',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
                 // subtitle: Text('phone : ${order.phone}'),
                 subtitle: Container(
                   padding: EdgeInsets.all(8.0),
@@ -169,7 +164,7 @@ class _MyHomeState extends State<MyHome> {
                       color: Colors.orange,
                       borderRadius: BorderRadius.circular(8.0)),
                   child: Text(
-                    'Ordered_on : ${convertedDate}',
+                    'Ordered on : ${convertedDate}',
                     style: TextStyle(color: Colors.black),
                   ),
                 ),
@@ -184,6 +179,12 @@ class _MyHomeState extends State<MyHome> {
                     )),
               ),
               ListTile(
+                title: Text(
+                  'Customer Name : ${order.customerName}',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              ListTile(
                 title: Text('phone : ${order.phone}',
                     style: TextStyle(fontWeight: FontWeight.bold)),
               ),
@@ -192,10 +193,18 @@ class _MyHomeState extends State<MyHome> {
                     style: TextStyle(fontWeight: FontWeight.bold)),
               ),
               ListTile(
-                title: Text('Order_id : ${order.orderId}'),
+                title: Text('Order id : ${order.orderId}'),
               ),
               ListTile(
-                title: Text('Status : ${order.status}'),
+                title: Container(
+                  child: Text(
+                    'Status : ${order.status}',
+                    style: TextStyle(
+                        backgroundColor: order.status == 'completed'
+                            ? Colors.green
+                            : Colors.red),
+                  ),
+                ),
               ),
               ListTile(
                 title: Text('Payment type : ${order.paymentType}'),
@@ -224,14 +233,27 @@ class _MyHomeState extends State<MyHome> {
                       itemBuilder: (BuildContext context, int index) {
                         var product =
                             SingleOrderModel.fromJson(productList[index]);
+
+                        print('product =>>> ${product.name}');
                         return Table(
                           children: [
                             TableRow(children: [
-                              Text('${product.name}'),
-                              Text('${product.weight}'),
-                              Text('${product.price}'),
-                              Text('${product.quantity}'),
-                              Text('${product.cPrice}'),
+                              Text(
+                                '${product.name}',
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                              Text('${product.weight}',
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.w600)),
+                              Text('${product.price}',
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.w600)),
+                              Text('${product.quantity}',
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.w600)),
+                              Text('${product.calcPrice}',
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.w600)),
                             ]),
                           ],
                         );
@@ -242,23 +264,37 @@ class _MyHomeState extends State<MyHome> {
                 ),
               ),
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   Padding(
                     padding: EdgeInsets.all(4.0),
-                    child: RaisedButton(
-                      onPressed: () => {
-                        Get.toNamed('/editFinalOrder', arguments: order.orderId)
-                      },
-                      child: Text('Edit Order'),
-                    ),
+                    child: order.status.toLowerCase() == "completed"
+                        ? RaisedButton(
+                            color: Colors.pink[50],
+                            onPressed: () => null,
+                            child: Text('Edit Order'),
+                          )
+                        : RaisedButton(
+                            onPressed: () => {
+                              Get.toNamed('/editFinalOrder',
+                                  arguments: order.orderId)
+                            },
+                            child: Text('Edit Order'),
+                          ),
                   ),
                   Padding(
                     padding: EdgeInsets.all(4.0),
-                    child: RaisedButton(
-                      onPressed: () =>
-                          _orderStatusDialog(_dropDownValue, order.orderId),
-                      child: Text('Edit Order status'),
-                    ),
+                    child: order.status.toLowerCase() == "completed"
+                        ? RaisedButton(
+                            color: Colors.pink[50],
+                            onPressed: () => null,
+                            child: Text('Edit Order status'),
+                          )
+                        : RaisedButton(
+                            onPressed: () => _orderStatusDialog(
+                                _dropDownValue, order.orderId),
+                            child: Text('Edit Order status'),
+                          ),
                   ),
                 ],
               ),
@@ -269,7 +305,7 @@ class _MyHomeState extends State<MyHome> {
 }
 
 class BuildDialog extends StatefulWidget {
-  int orderId;
+  final int orderId;
 
   BuildDialog(this.orderId);
   @override
